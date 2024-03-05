@@ -44,6 +44,7 @@ impl State {
         let mut rng = RandomNumberGenerator::new();
         let map_builder = MapBuilder::new(&mut rng);
         spawn_player(&mut ecs, map_builder.player_start);
+        spawn_amulet_of_yala(&mut ecs, map_builder.amulet_start);
         map_builder
             .rooms
             .iter()
@@ -59,6 +60,67 @@ impl State {
             input_systems: build_input_scheduler(),
             player_systems: build_player_scheduler(),
             monster_systems: build_monster_scheduler(),
+        }
+    }
+
+    fn reset_game(&mut self) {
+        self.ecs = World::default();
+        self.resources = Resources::default();
+        let mut rng = RandomNumberGenerator::new();
+        let map_builder = MapBuilder::new(&mut rng);
+        spawn_player(&mut self.ecs, map_builder.player_start);
+        spawn_amulet_of_yala(&mut self.ecs, map_builder.amulet_start);
+        map_builder
+            .rooms
+            .iter()
+            .skip(1)
+            .map(|r| r.center())
+            .for_each(|pos| spawn_monster(&mut self.ecs, &mut rng, pos));
+        self.resources.insert(map_builder.map);
+        self.resources.insert(Camera::new(map_builder.player_start));
+        self.resources.insert(TurnState::AwaitingInput);
+    }
+
+    fn game_over(&mut self, ctx: &mut BTerm) {
+        ctx.set_active_console(2);
+        ctx.print_color_centered(2, RED, BLACK, "Your quest has ended!");
+        ctx.print_color_centered(
+            4,
+            WHITE,
+            BLACK,
+            "Slain by a monster, your hero's journey has come to a close.",
+        );
+        ctx.print_color_centered(
+            5,
+            WHITE,
+            BLACK,
+            "The amulet remains unclaimed, and your home is far away.",
+        );
+        ctx.print_color_centered(
+            8,
+            YELLOW,
+            BLACK,
+            "Don't worry, you can always try again with a new hero.",
+        );
+        ctx.print_color_centered(9, YELLOW, BLACK, "Press SPACE to try again.");
+        if let Some(VirtualKeyCode::Space) = ctx.key {
+            self.reset_game();
+        }
+    }
+
+    fn victory(&mut self, ctx: &mut BTerm) {
+        ctx.set_active_console(2);
+        ctx.print_color_centered(2, GREEN, BLACK, "Congratulations!");
+        ctx.print_color_centered(
+            4,
+            WHITE,
+            BLACK,
+            "You managed to get the amulet and escape with your life.",
+        );
+        ctx.print_color_centered(5, WHITE, BLACK, "You may rest, for now.");
+        ctx.print_color_centered(8, YELLOW, BLACK, "Press SPACE to try again.");
+        if let Some(VirtualKeyCode::Space) = ctx.key {
+            self.reset_game();
         }
     }
 }
@@ -85,6 +147,8 @@ impl GameState for State {
             TurnState::MonsterTurn => self
                 .monster_systems
                 .execute(&mut self.ecs, &mut self.resources),
+            TurnState::GameOver => self.game_over(ctx),
+            TurnState::Victory => self.victory(ctx),
         }
         render_draw_buffer(ctx).expect("Render error");
     }

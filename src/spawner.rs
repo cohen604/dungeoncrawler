@@ -9,9 +9,22 @@ pub fn spawn_player(ecs: &mut World, pos: Point) {
             glyph: to_cp437('@'),
         },
         Health {
-            current: 20,
-            max: 20,
+            current: 100,
+            max: 100,
         },
+    ));
+}
+
+pub fn spawn_amulet_of_yala(ecs: &mut World, pos: Point) {
+    ecs.push((
+        Item,
+        AmuletOfYala,
+        pos,
+        Render {
+            color: ColorPair::new(WHITE, BLACK),
+            glyph: to_cp437('|'),
+        },
+        Name("Amulet of Yala".to_string()),
     ));
 }
 
@@ -21,7 +34,7 @@ pub fn spawn_monster(ecs: &mut World, rng: &mut RandomNumberGenerator, pos: Poin
         _ => orc(),
     };
 
-    ecs.push((Enemy, pos, render, health, MovingRandomly, Name(name)));
+    ecs.push((Enemy, pos, render, health, ChasingPlayer, Name(name)));
 }
 
 fn goblin() -> (String, Render, Health) {
