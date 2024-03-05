@@ -8,21 +8,40 @@ pub fn spawn_player(ecs: &mut World, pos: Point) {
             color: ColorPair::new(WHITE, BLACK),
             glyph: to_cp437('@'),
         },
+        Health {
+            current: 20,
+            max: 20,
+        },
     ));
 }
 
 pub fn spawn_monster(ecs: &mut World, rng: &mut RandomNumberGenerator, pos: Point) {
-    ecs.push((
-        Enemy,
-        pos,
+    let (name, render, health) = match rng.roll_dice(1, 10) {
+        1..=8 => goblin(),
+        _ => orc(),
+    };
+
+    ecs.push((Enemy, pos, render, health, MovingRandomly, Name(name)));
+}
+
+fn goblin() -> (String, Render, Health) {
+    (
+        "Goblin".to_string(),
         Render {
             color: ColorPair::new(WHITE, BLACK),
-            glyph: match rng.range(0, 4) {
-                0 => to_cp437('E'),
-                1 => to_cp437('O'),
-                2 => to_cp437('o'),
-                _ => to_cp437('g'),
-            },
+            glyph: to_cp437('g'),
         },
-    ));
+        Health { current: 1, max: 1 },
+    )
+}
+
+fn orc() -> (String, Render, Health) {
+    (
+        "Orc".to_string(),
+        Render {
+            color: ColorPair::new(WHITE, BLACK),
+            glyph: to_cp437('o'),
+        },
+        Health { current: 2, max: 2 },
+    )
 }
